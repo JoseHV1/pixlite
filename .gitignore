@@ -1,6 +1,9 @@
 # Claude Code local settings
 .claude/
 
+# Mockups de referencia, no forman parte del build
+styles/
+
 # System files
 .DS_Store
 Thumbs.db
