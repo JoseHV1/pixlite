@@ -1,0 +1,27 @@
+<div class="min-h-screen flex flex-col bg-background text-on-background font-sans">
+  <app-header />
+
+  <main class="flex-grow flex flex-col items-center w-full max-w-(--spacing-container-max) mx-auto px-gutter py-section-gap">
+    <app-dropzone class="w-full max-w-3xl mb-stack-lg" hint="or click to upload" (filesSelected)="onFilesSelected($event)" />
+
+    @if (queue.entries().length) {
+      <div class="w-full max-w-3xl flex flex-col gap-stack-sm mb-stack-lg">
+        @for (entry of queue.entries(); track entry.id) {
+          <app-queue-item-card
+            [filename]="entry.filename"
+            [status]="entry.status"
+            [percent]="entry.percent"
+            [detail]="entry | entryDetail"
+            [thumbnailUrl]="entry.dataUrl"
+            (cancel)="queue.removeEntry(entry.id)"
+            (download)="queue.downloadEntry(entry.id)"
+          />
+        }
+      </div>
+
+      <app-primary-button label="Download Optimized Images" icon="download" (click)="queue.downloadAll()" />
+    }
+  </main>
+
+  <app-footer />
+</div>

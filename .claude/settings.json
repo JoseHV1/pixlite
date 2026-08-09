@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sudo ss -ltnp)",
+      "Bash(fuser 4200/tcp)"
+    ]
+  }
+}

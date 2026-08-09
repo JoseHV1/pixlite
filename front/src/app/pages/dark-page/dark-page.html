@@ -1,0 +1,63 @@
+<div class="min-h-screen flex flex-col bg-background text-on-background font-sans">
+  <app-header />
+
+  <main class="flex-grow flex flex-col gap-stack-lg w-full max-w-(--spacing-container-max) mx-auto px-gutter py-section-gap">
+    <div class="text-center mb-stack-md">
+      <h1 class="text-display-lg text-on-background mb-stack-sm">Optimize Images Instantly</h1>
+      <p class="text-body-lg text-on-surface-variant max-w-2xl mx-auto">
+        Drop your files below to compress them without losing quality. Fast, secure, and entirely in your browser.
+      </p>
+    </div>
+
+    <app-dropzone
+      class="w-full h-64 block"
+      heading="Drag & Drop Images Here"
+      hint="or click to browse files"
+      (filesSelected)="onFilesSelected($event)"
+    />
+
+    <div class="rounded-xl p-6 border border-outline-variant bg-surface">
+      <h3 class="text-headline-md text-on-surface mb-stack-md">Optimization Settings</h3>
+      <div class="flex flex-wrap items-center gap-4">
+        <div class="flex rounded-lg p-1 border border-outline-variant bg-background">
+          <button type="button" class="px-4 py-2 rounded-lg bg-primary text-on-primary text-label-sm shadow-sm transition-all">Lossy</button>
+          <button type="button" class="px-4 py-2 rounded-lg text-on-surface-variant hover:text-on-surface text-label-sm transition-all">Lossless</button>
+        </div>
+        <div class="flex-grow max-w-md ml-auto flex items-center gap-4">
+          <span class="text-label-sm text-on-surface-variant whitespace-nowrap">Quality: {{ quality() }}%</span>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            [value]="quality()"
+            (input)="onQualityChange($event)"
+            class="w-full h-2 rounded-lg appearance-none cursor-pointer accent-primary bg-surface-variant"
+          />
+        </div>
+      </div>
+    </div>
+
+    @if (queue.entries().length) {
+      <div class="flex flex-col gap-stack-sm">
+        <h4 class="text-body-lg text-on-surface-variant">Processing Queue ({{ queue.entries().length }})</h4>
+        @for (entry of queue.entries(); track entry.id) {
+          <app-queue-item-card
+            [filename]="entry.filename"
+            [status]="entry.status"
+            [percent]="entry.percent"
+            [detail]="entry | entryDetail"
+            [thumbnailUrl]="entry.dataUrl"
+            (cancel)="queue.removeEntry(entry.id)"
+            (download)="queue.downloadEntry(entry.id)"
+          />
+        }
+      </div>
+
+      <div class="flex justify-center mt-stack-md">
+        <app-primary-button label="Download All ({{ queue.entries().length }})" icon="download_for_offline" (click)="queue.downloadAll()" />
+      </div>
+    }
+  </main>
+
+  <app-footer />
+</div>

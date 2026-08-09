@@ -1,0 +1,13 @@
+services:
+  back:
+    build:
+      context: ./back
+    environment:
+      - PORT=3000
+      - CORS_ORIGIN=${CORS_ORIGIN}
+    restart: unless-stopped
+
+  front:
+    build:
+      context: ./front
+    restart: unless-stopped

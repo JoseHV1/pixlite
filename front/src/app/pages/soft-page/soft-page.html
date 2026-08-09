@@ -1,0 +1,121 @@
+<div class="min-h-screen flex flex-col bg-background text-on-background font-sans">
+  <app-header />
+
+  <main class="flex-grow flex flex-col items-center w-full max-w-(--spacing-container-max) mx-auto px-gutter py-section-gap">
+    <div class="text-center mb-stack-lg max-w-2xl">
+      <h1 class="text-display-lg text-primary mb-stack-sm">Smart Image Compression</h1>
+      <p class="text-body-lg text-on-surface-variant">
+        Optimize your images without losing quality. Drop your files below to get started.
+      </p>
+    </div>
+
+    <div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-stack-md">
+      <app-dropzone
+        class="lg:col-span-2 min-h-96 block rounded-xl shadow-action border border-surface-variant bg-surface-container-lowest"
+        heading="Drag & Drop Images Here"
+        hint="or click to browse from your device"
+        (filesSelected)="onFilesSelected($event)"
+      />
+
+      <div class="rounded-xl shadow-action border border-surface-variant bg-surface-container-lowest p-stack-md flex flex-col justify-between">
+        <div>
+          <h3 class="text-headline-md text-on-surface mb-stack-md border-b border-surface-variant pb-2">Compression Settings</h3>
+
+          <div class="mb-stack-lg">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-body-md text-on-surface-variant">Quality</label>
+              <span class="text-label-sm font-bold text-primary bg-surface-container-high px-2 py-1 rounded-md">{{ quality() }}%</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="100"
+              [value]="quality()"
+              (input)="onQualityChange($event)"
+              class="w-full h-2 rounded-lg appearance-none cursor-pointer accent-primary bg-surface-container-high"
+            />
+          </div>
+
+          <div class="mb-stack-lg">
+            <label class="text-body-md text-on-surface-variant block mb-2">Output Format</label>
+            <div class="flex rounded-lg p-1 bg-surface-container-high">
+              <button
+                type="button"
+                class="flex-1 py-2 rounded-md text-label-sm transition-all"
+                [class]="format() === 'original' ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'"
+                (click)="format.set('original')"
+              >
+                Original
+              </button>
+              <button
+                type="button"
+                class="flex-1 py-2 rounded-md text-label-sm transition-all"
+                [class]="format() === 'webp' ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'"
+                (click)="format.set('webp')"
+              >
+                WebP
+              </button>
+              <button
+                type="button"
+                class="flex-1 py-2 rounded-md text-label-sm transition-all"
+                [class]="format() === 'jpeg' ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'"
+                (click)="format.set('jpeg')"
+              >
+                JPEG
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <label class="flex items-center gap-3 cursor-pointer group">
+              <div class="relative flex items-center justify-center">
+                <input type="checkbox" checked class="peer sr-only" />
+                <div class="w-5 h-5 rounded border-2 border-outline bg-surface-container-lowest peer-checked:bg-primary peer-checked:border-primary transition-colors"></div>
+                <span class="material-symbols-outlined absolute text-on-primary text-[14px] opacity-0 peer-checked:opacity-100 transition-opacity font-bold">check</span>
+              </div>
+              <span class="text-body-md text-on-surface group-hover:text-primary transition-colors">Strip Metadata (EXIF)</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer group">
+              <div class="relative flex items-center justify-center">
+                <input type="checkbox" class="peer sr-only" />
+                <div class="w-5 h-5 rounded border-2 border-outline bg-surface-container-lowest peer-checked:bg-primary peer-checked:border-primary transition-colors"></div>
+                <span class="material-symbols-outlined absolute text-on-primary text-[14px] opacity-0 peer-checked:opacity-100 transition-opacity font-bold">check</span>
+              </div>
+              <span class="text-body-md text-on-surface group-hover:text-primary transition-colors">Resize Large Images</span>
+            </label>
+          </div>
+
+          @if (pendingFiles().length) {
+            <p class="text-label-sm text-primary mt-stack-sm">{{ pendingFiles().length }} file(s) ready — click Optimize Now</p>
+          }
+        </div>
+
+        <app-primary-button class="mt-stack-md" label="Optimize Now" icon="auto_awesome" [fullWidth]="true" (click)="optimizeNow()" />
+      </div>
+    </div>
+
+    @if (queue.entries().length) {
+      <div class="w-full mt-stack-lg border-t border-surface-variant pt-stack-md">
+        <h4 class="text-headline-md text-on-surface mb-stack-md flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">imagesmode</span>
+          Processing Queue
+        </h4>
+        <div class="flex flex-col gap-stack-sm">
+          @for (entry of queue.entries(); track entry.id) {
+            <app-queue-item-card
+              [filename]="entry.filename"
+              [status]="entry.status"
+              [percent]="entry.percent"
+              [detail]="entry | entryDetail"
+              [thumbnailUrl]="entry.dataUrl"
+              (cancel)="queue.removeEntry(entry.id)"
+              (download)="queue.downloadEntry(entry.id)"
+            />
+          }
+        </div>
+      </div>
+    }
+  </main>
+
+  <app-footer />
+</div>

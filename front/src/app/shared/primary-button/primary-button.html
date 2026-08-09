@@ -1,0 +1,8 @@
+<button
+  type="button"
+  class="min-h-14 px-8 py-4 rounded-xl flex items-center justify-center gap-2 bg-primary text-on-primary text-headline-md shadow-action transition-all duration-200 hover:bg-primary-container active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+  [class.w-full]="fullWidth()"
+>
+  <span class="material-symbols-outlined">{{ icon() }}</span>
+  <span>{{ label() }}</span>
+</button>
