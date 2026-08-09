@@ -4,7 +4,7 @@ services:
       context: ./back
     environment:
       - PORT=3000
-      - CORS_ORIGIN=${CORS_ORIGIN}
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://pixlite.jose-hernandez.dev}
     restart: unless-stopped
 
   front:
