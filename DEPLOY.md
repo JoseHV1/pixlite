@@ -1,73 +1,86 @@
-# Desplegar Pixlite en Coolify
+# Desplegar Pixlite
 
-Este proyecto se despliega como un recurso **Docker Compose** en Coolify (usa `docker-compose.yml` en la raíz, que define los servicios `back` y `front`).
+Este proyecto se despliega como un recurso **Docker Compose** en Coolify (usa `docker-compose.yml` en la raíz, que define los servicios `back` y `front`). Coolify se encarga de clonar el repo, construir las imágenes y levantar los contenedores en cada deploy — **pero no de servir el tráfico público ni el SSL**: en este VPS, Apache es quien ocupa los puertos 80/443 y sirve todos los dominios (incluido el propio panel de Coolify), así que Apache es la puerta de entrada real, igual que para `n8n.jose-hernandez.dev` y el resto de proyectos.
+
+## Arquitectura
+
+```
+internet → Apache (80/443, SSL real via certbot) → 127.0.0.1:3002 (back) / 127.0.0.1:3003 (front)
+                                                              ↑
+                                              contenedores Docker gestionados por Coolify
+```
+
+`back` y `front` publican puertos fijos del host (`3002` y `3003`, ver `docker-compose.yml`) precisamente para que Apache tenga un target estable al que apuntar, sin depender del proxy interno de Coolify (Traefik) para el ruteo público.
 
 ## 1. DNS
 
-Antes de nada, crea en tu proveedor de DNS dos registros `A` apuntando a la IP del VPS (`147.93.3.184`):
+Registros `A` apuntando a la IP del VPS (`147.93.3.184`), **sin proxy de Cloudflare** (nube gris/DNS-only) — igual que `n8n.jose-hernandez.dev`:
 
-| Host | Tipo | Valor |
-|---|---|---|
-| `pixlite.jose-hernandez.dev` | A | `147.93.3.184` |
-| `api.pixlite.jose-hernandez.dev` | A | `147.93.3.184` |
+| Host | Tipo | Valor | Proxy |
+|---|---|---|---|
+| `pixlite.jose-hernandez.dev` | A | `147.93.3.184` | DNS only |
+| `api.pixlite.jose-hernandez.dev` | A | `147.93.3.184` | DNS only |
 
-Espera a que propaguen (puedes verificar con `dig pixlite.jose-hernandez.dev`) antes de pedirle a Coolify que emita el certificado SSL, o fallará la validación de Let's Encrypt.
+## 2. Acceso de Coolify al repo privado
 
-## 2. Dar acceso a Coolify al repo privado
+El repo `github.com/JoseHV1/pixlite` es privado. Coolify usa una deploy key SSH dedicada (creada como recurso "Private Key" en Coolify, no la del host) y esa misma clave pública está agregada en GitHub → Settings → Deploy keys (solo lectura).
 
-El repo `github.com/JoseHV1/pixlite` es privado. Al crear el recurso, Coolify te va a pedir una fuente de Git:
+## 3. Recurso en Coolify
 
-1. En Coolify, ve a **Sources** (o al crear el recurso, elige "Private Repository (with deploy key)").
-2. Coolify te genera una clave pública SSH específica para esta app.
-3. Copia esa clave y agrégala en GitHub como **Deploy Key**: `github.com/JoseHV1/pixlite` → Settings → Deploy keys → Add deploy key (no marques "Allow write access", solo necesita leer).
-4. Vuelve a Coolify y confirma — debería poder listar branches del repo.
+- **New Resource → Docker Compose**, repo `JoseHV1/pixlite`, branch `main`, **Docker Compose Location**: `docker-compose.yml`.
+- Coolify detecta los servicios `back` y `front` y los reconstruye en cada deploy.
+- Variable de entorno `CORS_ORIGIN` ya viene con su valor por defecto en el propio `docker-compose.yml` (`https://pixlite.jose-hernandez.dev`).
+- Los dominios que Coolify asigna internamente (`docker_compose_domains`) quedan configurados pero **no son los que sirven el tráfico real** — son vestigiales dado que Apache es la puerta de entrada. No hace falta tocarlos.
 
-## 3. Crear el recurso
+## 4. Apache (puerta de entrada real + SSL)
 
-1. En tu proyecto de Coolify, **New Resource → Docker Compose**.
-2. Repositorio: `JoseHV1/pixlite`, branch `main`.
-3. **Docker Compose Location**: `docker-compose.yml` (raíz del repo — ya está ahí).
-4. Coolify va a detectar los dos servicios: `back` y `front`.
+Vhosts en `/etc/apache2/sites-available/`, proxy directo a los puertos fijos del compose:
 
-## 4. Configurar cada servicio
+```apache
+# pixlite.conf
+<VirtualHost *:80>
+    ServerName pixlite.jose-hernandez.dev
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:3003/
+    ProxyPassReverse / http://127.0.0.1:3003/
+    ErrorLog ${APACHE_LOG_DIR}/pixlite_error.log
+    CustomLog ${APACHE_LOG_DIR}/pixlite_access.log combined
+</VirtualHost>
+```
 
-**Servicio `back`:**
-- Puerto expuesto/interno: `3000`
-- Dominio: `https://api.pixlite.jose-hernandez.dev`
-- Variables de entorno:
-  - `CORS_ORIGIN=https://pixlite.jose-hernandez.dev`
-  - `PORT=3000` (ya viene en el compose, no hace falta repetirla, pero no está de más)
+```apache
+# pixlite-api.conf
+<VirtualHost *:80>
+    ServerName api.pixlite.jose-hernandez.dev
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:3002/
+    ProxyPassReverse / http://127.0.0.1:3002/
+    ErrorLog ${APACHE_LOG_DIR}/pixlite-api_error.log
+    CustomLog ${APACHE_LOG_DIR}/pixlite-api_access.log combined
+</VirtualHost>
+```
 
-**Servicio `front`:**
-- Puerto expuesto/interno: `80`
-- Dominio: `https://pixlite.jose-hernandez.dev`
-- No necesita variables de entorno — la URL del back (`https://api.pixlite.jose-hernandez.dev`) ya quedó fija en el build de producción (`front/src/environments/environment.prod.ts`), porque Angular resuelve esto en build-time, no en runtime.
+```bash
+sudo a2ensite pixlite.conf pixlite-api.conf
+sudo systemctl reload apache2
+sudo certbot --apache -d pixlite.jose-hernandez.dev -d api.pixlite.jose-hernandez.dev
+```
 
-> Si en algún momento cambias el dominio del back, hay que editar `environment.prod.ts` y volver a hacer deploy del front (no basta con cambiar la env var en Coolify).
+Certbot reescribe estos vhosts para añadir el bloque `:443` con el certificado real, igual que hizo para `n8n.jose-hernandez.dev`.
 
-## 5. Deploy
-
-Dale a **Deploy**. Coolify va a:
-1. Clonar el repo
-2. Construir las dos imágenes con los `Dockerfile` de `back/` y `front/`
-3. Levantar los contenedores
-4. Emitir certificados SSL (Let's Encrypt) para ambos dominios automáticamente, una vez que el DNS ya resuelva
-
-## 6. Verificar
+## 5. Verificar
 
 ```bash
 curl -I https://pixlite.jose-hernandez.dev
 curl -I https://api.pixlite.jose-hernandez.dev
 ```
 
-Ambos deberían responder `200`. Prueba subir una imagen real desde `https://pixlite.jose-hernandez.dev/professional` (o `/dark`, `/soft`) para confirmar que el front llega al back sin error de CORS.
+Ambos deberían responder `200` con certificado válido. Prueba subir una imagen real desde `https://pixlite.jose-hernandez.dev/professional` (o `/dark`, `/soft`) para confirmar que el front llega al back sin error de CORS.
 
 ## Flujo de trabajo día a día
 
-Con esto configurado, el ciclo es:
-
 ```
-código local → git push origin main → (Coolify redeploya automáticamente si activaste el webhook/auto-deploy, o le das "Redeploy" manualmente)
+código local → git push origin main → Coolify reconstruye y redespliega los contenedores
 ```
 
-Activa **Automatic Deployment** en la configuración del recurso en Coolify si quieres que cada push a `main` dispare un deploy solo.
+Activa **Automatic Deployment** en la configuración del recurso en Coolify para que cada push a `main` dispare el deploy solo, sin intervención manual. Apache y el certificado SSL no necesitan tocarse de nuevo salvo que cambien los dominios.
