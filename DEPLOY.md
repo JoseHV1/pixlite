@@ -80,7 +80,7 @@ Ambos deberían responder `200` con certificado válido. Prueba subir una imagen
 ## Flujo de trabajo día a día
 
 ```
-código local → git push origin main → Coolify reconstruye y redespliega los contenedores
+código local → git push origin main → Coolify reconstruye y redespliega los contenedores automáticamente
 ```
 
-Activa **Automatic Deployment** en la configuración del recurso en Coolify para que cada push a `main` dispare el deploy solo, sin intervención manual. Apache y el certificado SSL no necesitan tocarse de nuevo salvo que cambien los dominios.
+El auto-deploy ya está configurado: hay un webhook activo en `github.com/JoseHV1/pixlite` (Settings → Webhooks) que apunta a `https://coolify.jose-hernandez.dev/webhooks/source/github/events`. Cada push a `main` dispara el deploy solo, sin intervención manual. Apache y el certificado SSL no necesitan tocarse de nuevo salvo que cambien los dominios.
