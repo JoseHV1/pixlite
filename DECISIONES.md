@@ -75,6 +75,8 @@ Contrato final, sin ninguna dependencia nueva en ningún lado (todo lo necesario
 
 ## 8. Estructura final
 
+*(Snapshot original de las 3 rutas. Después de la sección 12, `pages/` quedó solo con `soft-page` y `shared/` ganó 3 componentes más — ver el árbol actualizado al final de la sección 12.)*
+
 ```
 pixlite/
 ├── front/                      Angular 21 (standalone, zoneless, Vitest, Tailwind v4)
@@ -107,7 +109,6 @@ cd front && npm run e2e                      # Playwright — levanta front y ba
 
 ## 10. Limitaciones conocidas / próximos pasos
 
-- No hay elección definitiva de tema todavía — los 3 conviven en rutas separadas hasta que se decida cuál queda como la experiencia única (o si el multi-tema se mantiene como feature real).
 - La respuesta del endpoint de compresión viaja como base64 dentro del JSON; para lotes grandes o imágenes muy pesadas convendría un endpoint de descarga por streaming en vez de inflar la respuesta ~33% con base64.
 - Lossy/Lossless, Resize y el empaquetado en `.zip` de "Download All" son las extensiones más obvias y quedaron explícitamente fuera de esta pasada (ver sección 7).
 - No hay autenticación ni límite de uso — no hacía falta para el alcance actual (herramienta sin cuentas de usuario).
@@ -135,5 +136,38 @@ Una segunda pasada de revisión sobre esos mismos fixes encontró 4 problemas m�
 - El test de `quality=0` comparaba tamaños de bytes reales producidos por `sharp` sobre una imagen de 1x1 px — la diferencia real era de 1 byte, un margen tan chico que el test podía pasar aunque el clamping estuviera roto. Se exportó `normalizeQuality` y se testea directamente (0→1, -5→1, 150→100, `undefined`/`NaN`/texto→80) en vez de inferirlo indirectamente por el tamaño del archivo comprimido.
 
 **Dejado sin arreglar, a propósito:**
-- **CORS y `API_BASE_URL` hardcodeados a `localhost`** (back y front respectivamente): es un hallazgo real — cualquier despliegue fuera de exactamente `localhost:4200`↔`localhost:3000` rompe. No se resolvió con variables de entorno porque hoy no existe ningún despliegue real que lo necesite; agregar esa configuración ahora sería resolver un problema que todavía no existe. Es el primer cambio a hacer el día que haya un dominio real.
+- **CORS y `API_BASE_URL` hardcodeados a `localhost`** (back y front respectivamente): es un hallazgo real — cualquier despliegue fuera de exactamente `localhost:4200`↔`localhost:3000` rompe. No se resolvió con variables de entorno porque hoy no existe ningún despliegue real que lo necesite; agregar esa configuración ahora sería resolver un problema que todavía no existe. Es el primer cambio a hacer el día que haya un dominio real. *(Resuelto más adelante — ver sección 12: `CORS_ORIGIN` y `environment.prod.ts` ya se usan en el despliegue real de `pixlite.jose-hernandez.dev`, ver `DEPLOY.md`.)*
 - **Los tipos del contrato HTTP (`CompressedImageResult`, `OutputFormat`, `CompressOptions`) están duplicados a mano entre `back/src/images/images.service.ts` y `front/src/app/core/images-api.ts`**, sin ningún paquete compartido — pueden divergir sin error de compilación. No se introdujo un paquete de tipos compartido porque `front/` y `back/` son dos aplicaciones desplegables por separado sin ninguna herramienta de monorepo (Nx, Turborepo, workspaces) configurada; montar eso solo para 3 interfaces pequeñas sería más infraestructura que la que resuelve. Si el contrato crece o empieza a divergir de verdad, ese es el momento de reconsiderarlo.
+
+## 12. Consolidación a un solo diseño (Soft Minimalist) + favicon
+
+Se cerró la limitación que dejaba abierta la sección 10 original: de los 3 mockups implementados como rutas independientes, **se eligió `soft` (Soft Minimalist) como la experiencia única** del producto y quedó montado en la ruta raíz (`/`). Se eliminaron `professional-page`, `dark-page` y `theme-index` (componentes, specs y sus rutas); `app.routes.ts` quedó con una sola ruta (`''` → `SoftPage`) más un wildcard que redirige de vuelta a `/`.
+
+En `styles.css`, el bloque `@theme` (que representaba la paleta "profesional" con Soft como override vía `[data-theme='soft']`) pasó a contener directamente los valores de Soft (radios grandes, tipografía Outfit, sombra suave). El atributo `data-theme` y el bloque `[data-theme='dark']` quedaron sin ningún consumidor una vez retiradas las otras dos rutas, así que se eliminaron junto con la línea `document.documentElement.dataset['theme'] = 'soft'` en el constructor de `SoftPage`.
+
+De paso, se extrajeron 3 átomos nuevos en `shared/` a partir de markup que vivía inline en `soft-page.html`: `QualitySlider`, `SegmentedControl` (genérico, tipado por `T`, reutilizable para cualquier grupo de opciones tipo toggle) y `Checkbox`. Reemplazan el slider de calidad, el toggle de formato y los dos checkboxes que antes estaban escritos a mano y duplicados. `Checkbox` quedó como componente controlado (`checked` + `checkedChange`) en vez de HTML estático sin binding — un checkbox con `[checked]` ligado a un signal pero sin escuchar su propio evento `change` se queda "pegado" al valor original en el próximo change detection, así que expone el evento nativo hacia afuera para que el signal del padre (`stripMetadata`/`resizeLargeImages`) siga al click en vez de pisarlo.
+
+Se agregó un favicon propio: `front/public/favicon.svg` (vector, el que usan los navegadores modernos) y `front/public/favicon.ico` multi-resolución (16/32/48, generado con `sharp` — la misma librería que ya usa el back) como *fallback*. Es una insignia redondeada en el morado primario (`#4f378a`) con una "P" en blanco, coherente con la paleta de marca ya definida en `DESIGN.md`.
+
+Se revisó el back en busca de bugs reales: `images.service.spec.ts` tenía una propiedad `buffer` duplicada dentro de un mismo objeto literal (error de TypeScript que `tsc --noEmit` sí marca pero que `ts-jest` dejaba pasar sin que fallara ningún test) y `main.ts` dejaba la promesa de `bootstrap()` sin manejar (`@typescript-eslint/no-floating-promises`). Ambos se corrigieron. No se encontraron bugs de comportamiento nuevos: la validación de `quality`/`format`, el límite de archivos, el aislamiento de errores por archivo y los límites de tamaño (secciones 7 y 11) siguen intactos, con toda la suite en verde — back 13/13 (Jest) + `tsc --noEmit` limpio, front 33/33 (Vitest) + build de producción limpio, y 3/3 e2e de Playwright contra el front y el back reales.
+
+**Pendiente, identificado pero fuera de esta pasada:** el back acumula ~34 violaciones de Prettier que `npm run lint` reporta en cuanto se corre sin `--fix` — el código nunca se formateó con la config actual de `.prettierrc`. No se corrigieron aquí porque `--fix` reescribe casi todo el módulo `images/` solo por ancho de línea, un diff grande y sin relación funcional con esta tarea; es un cambio aparte que vale la pena hacer de forma aislada.
+
+Estructura final actualizada:
+
+```
+pixlite/
+├── front/                      Angular 21 (standalone, zoneless, Vitest, Tailwind v4)
+│   ├── public/                  favicon.svg, favicon.ico
+│   ├── src/app/
+│   │   ├── core/                image-queue.ts, images-api.ts, api-config.ts
+│   │   ├── shared/               header, footer, dropzone, queue-item-card, primary-button,
+│   │   │                         quality-slider, segmented-control, checkbox, entry-detail.pipe
+│   │   └── pages/                soft-page (única ruta, montada en '/')
+│   └── e2e/                     Playwright (routes.spec.ts + fixtures/sample.png)
+├── back/                       Nest 11
+│   └── src/
+│       ├── images/               images.module.ts, images.controller.ts, images.service.ts
+│       └── app.*                 boilerplate de `nest new`, sin tocar
+└── styles/                     Los 3 mockups originales + DESIGN.md — quedan como referencia histórica
+```

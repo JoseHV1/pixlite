@@ -5,20 +5,11 @@ import { SoftPage } from './soft-page';
 import { ImageQueue } from '../../core/image-queue';
 
 describe('SoftPage', () => {
-  afterEach(() => {
-    delete document.documentElement.dataset['theme'];
-  });
-
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SoftPage],
       providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
-  });
-
-  it('sets the soft theme on the document', () => {
-    TestBed.createComponent(SoftPage);
-    expect(document.documentElement.dataset['theme']).toBe('soft');
   });
 
   it('renders the bento layout with no queue yet', async () => {
@@ -44,7 +35,7 @@ describe('SoftPage', () => {
     fixture.componentInstance.format.set('webp');
     fixture.componentInstance.optimizeNow();
 
-    expect(addFiles).toHaveBeenCalledWith([file], { quality: 85, format: 'webp' });
+    expect(addFiles).toHaveBeenCalledWith([file], { quality: 80, format: 'webp' });
     expect(fixture.componentInstance.pendingFiles()).toEqual([]);
   });
 });

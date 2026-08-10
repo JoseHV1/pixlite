@@ -1,0 +1,12 @@
+<div class="flex rounded-lg p-1 bg-surface-container-high">
+  @for (option of options(); track option.label) {
+    <button
+      type="button"
+      class="flex-1 py-2 text-label-sm transition-all"
+      [class]="value() === option.value ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'"
+      (click)="valueChange.emit(option.value)"
+    >
+      {{ option.label }}
+    </button>
+  }
+</div>

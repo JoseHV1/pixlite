@@ -3,12 +3,10 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens ported from styles/precision_streamline/DESIGN.md and the
- * three styles/pixlite_* mockups. The canonical values below are the
- * "professional" (Clean Professional) theme — it's the default/base palette
- * documented in DESIGN.md. The "dark" and "soft" themes only override what
- * actually differs (see [data-theme] blocks below), so every shared
- * component works unmodified across all three routes.
+ * Design tokens for the Soft Minimalist look (styles/pixlite_soft_rose),
+ * the only design PixLite ships. Palette values come from
+ * styles/precision_streamline/DESIGN.md; shape/typography/elevation match
+ * the soft mockup specifically (larger radii, Outfit type, softer shadow).
  */
 @theme {
   --color-background: #fdf7ff;
@@ -38,10 +36,10 @@
   --color-error: #ba1a1a;
   --color-on-error: #ffffff;
 
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: 'Outfit', sans-serif;
 
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
 
   --spacing-gutter: 1.5rem;
   --spacing-section-gap: 4rem;
@@ -69,48 +67,6 @@
   --text-label-sm--line-height: 1;
   --text-label-sm--letter-spacing: 0.05em;
   --text-label-sm--font-weight: 600;
-
-  --shadow-action: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-/* Modern Dark (styles/pixlite_dark_emerald) */
-[data-theme='dark'] {
-  --color-background: #111827;
-  --color-on-background: #f3f4f6;
-
-  --color-surface: #1f2937;
-  --color-surface-variant: #374151;
-  --color-surface-container-lowest: #1f2937;
-  --color-surface-container-low: #1f2937;
-  --color-surface-container: #1f2937;
-  --color-surface-container-high: #374151;
-
-  --color-on-surface: #f3f4f6;
-  --color-on-surface-variant: #9ca3af;
-
-  --color-outline: #4b5563;
-  --color-outline-variant: #374151;
-
-  --color-primary: #10b981;
-  --color-on-primary: #111827;
-  --color-primary-container: #059669;
-  --color-on-primary-container: #ffffff;
-
-  --color-error: #f87171;
-  --color-on-error: #111827;
-
-  --font-sans: 'Montserrat', sans-serif;
-
-  --shadow-action: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-}
-
-/* Soft Minimalist (styles/pixlite_soft_rose) — same palette as
-   professional, only shape/typography/elevation change. */
-[data-theme='soft'] {
-  --font-sans: 'Outfit', sans-serif;
-
-  --radius-lg: 1.5rem;
-  --radius-xl: 2rem;
 
   --shadow-action: 0 10px 40px -10px rgba(103, 80, 164, 0.15);
 }

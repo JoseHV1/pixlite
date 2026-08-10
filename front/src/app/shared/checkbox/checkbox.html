@@ -1,0 +1,13 @@
+<label class="flex items-center gap-3 cursor-pointer group">
+  <div class="relative flex items-center justify-center">
+    <input
+      type="checkbox"
+      [checked]="checked()"
+      (change)="onChange($event)"
+      class="peer sr-only"
+    />
+    <div class="w-5 h-5 rounded border-2 border-outline bg-surface-container-lowest peer-checked:bg-primary peer-checked:border-primary transition-colors"></div>
+    <span class="material-symbols-outlined absolute text-on-primary text-[14px] opacity-0 peer-checked:opacity-100 transition-opacity font-bold">check</span>
+  </div>
+  <span class="text-body-md text-on-surface group-hover:text-primary transition-colors">{{ label() }}</span>
+</label>

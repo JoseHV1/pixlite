@@ -3,56 +3,44 @@ import path from 'path';
 
 const SAMPLE_IMAGE = path.join(__dirname, 'fixtures', 'sample.png');
 
-const THEMES = [
-  { path: '/professional', theme: 'professional', doneCta: 'Download Optimized Images' },
-  { path: '/dark', theme: 'dark', doneCta: 'Download All (1)' },
-  { path: '/soft', theme: 'soft', doneCta: null },
-];
+test('home page loads the soft design with no console errors', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') consoleErrors.push(msg.text());
+  });
 
-test('index page links to the 3 theme previews', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('link', { name: /Clean Professional/ })).toHaveAttribute('href', '/professional');
-  await expect(page.getByRole('link', { name: /Modern Dark/ })).toHaveAttribute('href', '/dark');
-  await expect(page.getByRole('link', { name: /Soft Minimalist/ })).toHaveAttribute('href', '/soft');
+  await expect(page.getByText('PixLite').first()).toBeVisible();
+  await expect(page.getByText('Smart Image Compression')).toBeVisible();
+  await expect(page.getByText('sample.png')).not.toBeVisible();
+  expect(consoleErrors).toEqual([]);
 });
 
-for (const theme of THEMES) {
-  test(`${theme.path} loads empty with no console errors`, async ({ page }) => {
-    const consoleErrors: string[] = [];
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') consoleErrors.push(msg.text());
-    });
+test('unknown routes redirect back to the home page', async ({ page }) => {
+  await page.goto('/does-not-exist');
+  await expect(page).toHaveURL('/');
+  await expect(page.getByText('Smart Image Compression')).toBeVisible();
+});
 
-    await page.goto(theme.path);
-    await expect(page.getByText('PixLite').first()).toBeVisible();
-    await expect(page.getByText('sample.png')).not.toBeVisible();
+test('compresses a real uploaded image end-to-end', async ({ page }) => {
+  // Real upload + sharp processing over the network, slower than the other
+  // tests under load — give it more room than the 30s default.
+  test.setTimeout(60_000);
+  await page.goto('/');
 
-    const themeAttr = await page.evaluate(() => document.documentElement.dataset['theme']);
-    expect(themeAttr).toBe(theme.theme);
-    expect(consoleErrors).toEqual([]);
-  });
+  const [response] = await Promise.all([
+    page.waitForResponse((res) => res.url().endsWith('/images/compress'), { timeout: 45_000 }),
+    page.setInputFiles('input[type="file"]', SAMPLE_IMAGE),
+    page.getByRole('button', { name: 'Optimize Now' }).click(),
+  ]);
+  expect(response.status()).toBe(201);
 
-  test(`${theme.path} compresses a real uploaded image end-to-end`, async ({ page }) => {
-    await page.goto(theme.path);
+  await expect(page.getByText('sample.png')).toBeVisible();
+  await expect(page.getByText('Done')).toBeVisible({ timeout: 10_000 });
 
-    const [response] = await Promise.all([
-      page.waitForResponse((res) => res.url().endsWith('/images/compress')),
-      page.setInputFiles('input[type="file"]', SAMPLE_IMAGE),
-      theme.path === '/soft' ? page.getByRole('button', { name: 'Optimize Now' }).click() : Promise.resolve(),
-    ]);
-    expect(response.status()).toBe(201);
-
-    await expect(page.getByText('sample.png')).toBeVisible();
-    await expect(page.getByText('Done')).toBeVisible({ timeout: 10_000 });
-
-    if (theme.doneCta) {
-      await expect(page.getByText(theme.doneCta)).toBeVisible();
-    }
-
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.getByRole('button', { name: 'Download individual file' }).click(),
-    ]);
-    expect(download.suggestedFilename()).toBe('sample.png');
-  });
-}
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download individual file' }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('sample.png');
+});

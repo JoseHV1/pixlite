@@ -75,7 +75,7 @@ curl -I https://pixlite.jose-hernandez.dev
 curl -I https://api.pixlite.jose-hernandez.dev
 ```
 
-Ambos deberían responder `200` con certificado válido. Prueba subir una imagen real desde `https://pixlite.jose-hernandez.dev/professional` (o `/dark`, `/soft`) para confirmar que el front llega al back sin error de CORS.
+Ambos deberían responder `200` con certificado válido. Prueba subir una imagen real desde `https://pixlite.jose-hernandez.dev` para confirmar que el front llega al back sin error de CORS.
 
 ## Flujo de trabajo día a día
 

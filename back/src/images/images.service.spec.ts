@@ -10,7 +10,6 @@ function makeFile(overrides: Partial<Express.Multer.File> = {}): Express.Multer.
     encoding: '7bit',
     mimetype: 'image/png',
     size: buffer.length,
-    buffer,
     stream: undefined as never,
     destination: '',
     filename: '',

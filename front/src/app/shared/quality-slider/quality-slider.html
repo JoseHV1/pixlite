@@ -1,0 +1,15 @@
+<div>
+  <div class="flex justify-between items-center mb-2">
+    <label class="text-body-md text-on-surface-variant">{{ label() }}</label>
+    <span class="text-label-sm font-bold text-primary bg-surface-container-high px-2 py-1 rounded-md">{{ value() }}%</span>
+  </div>
+  <input
+    type="range"
+    [min]="min()"
+    [max]="max()"
+    [step]="step()"
+    [value]="value()"
+    (input)="onInput($event)"
+    class="w-full h-2 rounded-lg appearance-none cursor-pointer accent-primary bg-surface-container-high"
+  />
+</div>

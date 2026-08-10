@@ -4,29 +4,42 @@ import { Footer } from '../../shared/footer/footer';
 import { Dropzone } from '../../shared/dropzone/dropzone';
 import { QueueItemCard } from '../../shared/queue-item-card/queue-item-card';
 import { PrimaryButton } from '../../shared/primary-button/primary-button';
+import { QualitySlider } from '../../shared/quality-slider/quality-slider';
+import { SegmentedControl, SegmentedOption } from '../../shared/segmented-control/segmented-control';
+import { Checkbox } from '../../shared/checkbox/checkbox';
 import { EntryDetailPipe } from '../../shared/entry-detail.pipe';
 import { ImageQueue } from '../../core/image-queue';
 import { OutputFormat } from '../../core/images-api';
 
 @Component({
   selector: 'app-soft-page',
-  imports: [Header, Footer, Dropzone, QueueItemCard, PrimaryButton, EntryDetailPipe],
+  imports: [
+    Header,
+    Footer,
+    Dropzone,
+    QueueItemCard,
+    PrimaryButton,
+    QualitySlider,
+    SegmentedControl,
+    Checkbox,
+    EntryDetailPipe,
+  ],
   providers: [ImageQueue],
   templateUrl: './soft-page.html',
 })
 export class SoftPage {
   readonly queue = inject(ImageQueue);
-  readonly quality = signal(85);
+  readonly quality = signal(80);
   readonly format = signal<OutputFormat>('original');
+  readonly stripMetadata = signal(true);
+  readonly resizeLargeImages = signal(false);
   readonly pendingFiles = signal<File[]>([]);
 
-  constructor() {
-    document.documentElement.dataset['theme'] = 'soft';
-  }
-
-  onQualityChange(event: Event): void {
-    this.quality.set(Number((event.target as HTMLInputElement).value));
-  }
+  readonly formatOptions: SegmentedOption<OutputFormat>[] = [
+    { value: 'original', label: 'Original' },
+    { value: 'webp', label: 'WebP' },
+    { value: 'jpeg', label: 'JPEG' },
+  ];
 
   onFilesSelected(files: File[]): void {
     this.pendingFiles.update((current) => [...current, ...files]);
