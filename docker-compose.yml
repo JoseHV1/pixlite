@@ -5,9 +5,13 @@ services:
     environment:
       - PORT=3000
       - CORS_ORIGIN=${CORS_ORIGIN:-https://pixlite.jose-hernandez.dev}
+    ports:
+      - "3002:3000"
     restart: unless-stopped
 
   front:
     build:
       context: ./front
+    ports:
+      - "3003:80"
     restart: unless-stopped
