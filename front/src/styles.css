@@ -70,3 +70,32 @@
 
   --shadow-action: 0 10px 40px -10px rgba(103, 80, 164, 0.15);
 }
+
+/* Dark mode — same Soft Minimalist shape (radii, Outfit type, shadow),
+   only the color tokens invert. Toggled at runtime by ThemeService via
+   [data-theme] on <html>; see front/src/app/core/theme.ts. */
+[data-theme='dark'] {
+  --color-background: #1c1b1f;
+  --color-on-background: #e6e1e5;
+
+  --color-surface: #1c1b1f;
+  --color-surface-variant: #49454f;
+  --color-surface-container-lowest: #0f0d13;
+  --color-surface-container-low: #1d1b20;
+  --color-surface-container: #211f26;
+  --color-surface-container-high: #2b2930;
+
+  --color-on-surface: #e6e1e5;
+  --color-on-surface-variant: #cac4d0;
+
+  --color-outline: #938f99;
+  --color-outline-variant: #49454f;
+
+  --color-primary: #d0bcff;
+  --color-on-primary: #381e72;
+  --color-primary-container: #4f378a;
+  --color-on-primary-container: #eaddff;
+
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+}

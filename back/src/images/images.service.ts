@@ -7,6 +7,8 @@ export const OUTPUT_FORMATS: OutputFormat[] = ['original', 'jpeg', 'png', 'webp'
 export interface CompressOptions {
   quality: number;
   format: OutputFormat;
+  stripMetadata?: boolean;
+  resizeLargeImages?: boolean;
 }
 
 export interface CompressedImageResult {
@@ -19,6 +21,11 @@ export interface CompressedImageResult {
 }
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+// "Resize Large Images" caps the longest side at this many px — a common
+// web-optimization ceiling (Full HD-ish) well above typical display sizes
+// but well below raw camera/phone photo dimensions.
+export const MAX_LARGE_DIMENSION = 2048;
 
 const MIME_TO_FORMAT: Record<string, Exclude<OutputFormat, 'original'>> = {
   'image/jpeg': 'jpeg',
@@ -38,9 +45,21 @@ export class ImagesService {
 
     const quality = normalizeQuality(options.quality);
     const format = options.format === 'original' ? MIME_TO_FORMAT[file.mimetype] : options.format;
+    const stripMetadata = options.stripMetadata ?? true;
+    const resizeLargeImages = options.resizeLargeImages ?? false;
 
     try {
-      const buffer = await sharp(file.buffer).toFormat(format, { quality }).toBuffer();
+      let pipeline = sharp(file.buffer);
+      if (resizeLargeImages) {
+        pipeline = pipeline.resize(MAX_LARGE_DIMENSION, MAX_LARGE_DIMENSION, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        });
+      }
+      if (!stripMetadata) {
+        pipeline = pipeline.withMetadata();
+      }
+      const buffer = await pipeline.toFormat(format, { quality }).toBuffer();
       return {
         filename: file.originalname,
         mimeType: `image/${format}`,

@@ -18,6 +18,8 @@ export class ImagesController {
     @UploadedFiles() files: Express.Multer.File[],
     @Body('quality') quality?: string,
     @Body('format') format?: string,
+    @Body('stripMetadata') stripMetadata?: string,
+    @Body('resizeLargeImages') resizeLargeImages?: string,
   ) {
     if (!files?.length) {
       throw new BadRequestException('No files were uploaded.');
@@ -29,7 +31,13 @@ export class ImagesController {
     const results = await this.imagesService.compressMany(files, {
       quality: Number(quality),
       format: (format as OutputFormat | undefined) ?? 'original',
+      stripMetadata: parseBoolean(stripMetadata),
+      resizeLargeImages: parseBoolean(resizeLargeImages),
     });
     return { results };
   }
+}
+
+function parseBoolean(value: string | undefined): boolean | undefined {
+  return value === undefined ? undefined : value === 'true';
 }

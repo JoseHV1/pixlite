@@ -48,7 +48,12 @@ export class SoftPage {
   optimizeNow(): void {
     const files = this.pendingFiles();
     if (files.length === 0) return;
-    this.queue.addFiles(files, { quality: this.quality(), format: this.format() });
+    this.queue.addFiles(files, {
+      quality: this.quality(),
+      format: this.format(),
+      stripMetadata: this.stripMetadata(),
+      resizeLargeImages: this.resizeLargeImages(),
+    });
     this.pendingFiles.set([]);
   }
 }

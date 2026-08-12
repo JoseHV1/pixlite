@@ -4,7 +4,11 @@ services:
       context: ./back
     environment:
       - PORT=3000
-      - CORS_ORIGIN=${CORS_ORIGIN:-https://pixlite.jose-hernandez.dev}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+    env_file:
+      - path: ./back/.env
+        required: false
     ports:
       - "3002:3000"
     restart: unless-stopped

@@ -35,7 +35,32 @@ describe('SoftPage', () => {
     fixture.componentInstance.format.set('webp');
     fixture.componentInstance.optimizeNow();
 
-    expect(addFiles).toHaveBeenCalledWith([file], { quality: 80, format: 'webp' });
+    expect(addFiles).toHaveBeenCalledWith([file], {
+      quality: 80,
+      format: 'webp',
+      stripMetadata: true,
+      resizeLargeImages: false,
+    });
     expect(fixture.componentInstance.pendingFiles()).toEqual([]);
+  });
+
+  it('sends the checkbox state through to addFiles', async () => {
+    const fixture = TestBed.createComponent(SoftPage);
+    await fixture.whenStable();
+    const queue = fixture.debugElement.injector.get(ImageQueue);
+    const addFiles = vi.spyOn(queue, 'addFiles').mockImplementation(() => {});
+
+    const file = new File(['x'], 'hero.png', { type: 'image/png' });
+    fixture.componentInstance.onFilesSelected([file]);
+    fixture.componentInstance.stripMetadata.set(false);
+    fixture.componentInstance.resizeLargeImages.set(true);
+    fixture.componentInstance.optimizeNow();
+
+    expect(addFiles).toHaveBeenCalledWith([file], {
+      quality: 80,
+      format: 'original',
+      stripMetadata: false,
+      resizeLargeImages: true,
+    });
   });
 });

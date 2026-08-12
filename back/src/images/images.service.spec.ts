@@ -1,6 +1,18 @@
-import { ImagesService, normalizeQuality } from './images.service';
+import sharp from 'sharp';
+import { ImagesService, MAX_LARGE_DIMENSION, normalizeQuality } from './images.service';
 
 const SAMPLE_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+async function makeJpegWithExif(): Promise<Buffer> {
+  return sharp({ create: { width: 10, height: 10, channels: 3, background: { r: 255, g: 0, b: 0 } } })
+    .jpeg()
+    .withExif({ IFD0: { Copyright: 'PixLite Test' } })
+    .toBuffer();
+}
+
+async function makeLargeJpeg(width: number, height: number): Promise<Buffer> {
+  return sharp({ create: { width, height, channels: 3, background: { r: 0, g: 128, b: 255 } } }).jpeg().toBuffer();
+}
 
 function makeFile(overrides: Partial<Express.Multer.File> = {}): Express.Multer.File {
   const buffer = overrides.buffer ?? Buffer.from(SAMPLE_PNG_BASE64, 'base64');
@@ -86,6 +98,61 @@ describe('ImagesService', () => {
     });
     expect(result.error).toBeTruthy();
     expect(result.dataUrl).toBeNull();
+  });
+
+  it('strips EXIF metadata by default', async () => {
+    const buffer = await makeJpegWithExif();
+    const result = await service.compressOne(makeFile({ buffer, mimetype: 'image/jpeg' }), {
+      quality: 80,
+      format: 'original',
+    });
+    const outputMeta = await sharp(Buffer.from(result.dataUrl!.split(',')[1], 'base64')).metadata();
+    expect(outputMeta.exif).toBeUndefined();
+  });
+
+  it('keeps EXIF metadata when stripMetadata is false', async () => {
+    const buffer = await makeJpegWithExif();
+    const result = await service.compressOne(makeFile({ buffer, mimetype: 'image/jpeg' }), {
+      quality: 80,
+      format: 'original',
+      stripMetadata: false,
+    });
+    const outputMeta = await sharp(Buffer.from(result.dataUrl!.split(',')[1], 'base64')).metadata();
+    expect(outputMeta.exif).toBeDefined();
+  });
+
+  it('leaves an image untouched by default (resizeLargeImages off)', async () => {
+    const buffer = await makeLargeJpeg(3000, 1000);
+    const result = await service.compressOne(makeFile({ buffer, mimetype: 'image/jpeg' }), {
+      quality: 80,
+      format: 'original',
+    });
+    const outputMeta = await sharp(Buffer.from(result.dataUrl!.split(',')[1], 'base64')).metadata();
+    expect(outputMeta.width).toBe(3000);
+  });
+
+  it('caps an oversized image at MAX_LARGE_DIMENSION when resizeLargeImages is true', async () => {
+    const buffer = await makeLargeJpeg(3000, 1000);
+    const result = await service.compressOne(makeFile({ buffer, mimetype: 'image/jpeg' }), {
+      quality: 80,
+      format: 'original',
+      resizeLargeImages: true,
+    });
+    const outputMeta = await sharp(Buffer.from(result.dataUrl!.split(',')[1], 'base64')).metadata();
+    expect(outputMeta.width).toBe(MAX_LARGE_DIMENSION);
+    expect(outputMeta.height).toBeLessThan(MAX_LARGE_DIMENSION);
+  });
+
+  it('does not upscale a small image when resizeLargeImages is true', async () => {
+    const buffer = await makeLargeJpeg(10, 10);
+    const result = await service.compressOne(makeFile({ buffer, mimetype: 'image/jpeg' }), {
+      quality: 80,
+      format: 'original',
+      resizeLargeImages: true,
+    });
+    const outputMeta = await sharp(Buffer.from(result.dataUrl!.split(',')[1], 'base64')).metadata();
+    expect(outputMeta.width).toBe(10);
+    expect(outputMeta.height).toBe(10);
   });
 
   it('isolates a bad file in a batch so the good ones still succeed', async () => {

@@ -8,6 +8,8 @@ export type OutputFormat = 'original' | 'jpeg' | 'png' | 'webp';
 export interface CompressOptions {
   quality: number;
   format: OutputFormat;
+  stripMetadata?: boolean;
+  resizeLargeImages?: boolean;
 }
 
 export interface CompressedImageResult {
@@ -32,6 +34,8 @@ export class ImagesApi {
     files.forEach((file) => formData.append('files', file));
     formData.append('quality', String(options.quality));
     formData.append('format', options.format);
+    if (options.stripMetadata !== undefined) formData.append('stripMetadata', String(options.stripMetadata));
+    if (options.resizeLargeImages !== undefined) formData.append('resizeLargeImages', String(options.resizeLargeImages));
 
     const request = new HttpRequest('POST', `${API_BASE_URL}/images/compress`, formData, {
       reportProgress: true,

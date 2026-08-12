@@ -5,19 +5,47 @@
       <span class="text-headline-md font-bold text-primary">PixLite</span>
     </div>
 
-    <nav class="hidden md:flex items-center gap-8">
-      <a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200">Tools</a>
-      <a href="#" class="text-body-md text-primary border-b-2 border-primary pb-1 transition-colors duration-200">Compress</a>
-      <a href="#" class="text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200">Convert</a>
-    </nav>
+    <span class="hidden md:block text-body-md text-primary border-b-2 border-primary pb-1">Compress</span>
 
     <div class="flex items-center gap-4">
-      <button aria-label="Toggle dark mode" class="text-on-surface-variant hover:text-primary transition-colors duration-200 focus:outline-none">
-        <span class="material-symbols-outlined">dark_mode</span>
+      <button
+        type="button"
+        aria-label="Toggle dark mode"
+        [attr.aria-pressed]="theme.isDark()"
+        (click)="theme.toggle()"
+        class="text-on-surface-variant hover:text-primary transition-colors duration-200 focus:outline-none"
+      >
+        <span class="material-symbols-outlined">{{ theme.isDark() ? 'light_mode' : 'dark_mode' }}</span>
       </button>
-      <button aria-label="Help" class="text-on-surface-variant hover:text-primary transition-colors duration-200 focus:outline-none">
-        <span class="material-symbols-outlined">help</span>
-      </button>
+      <div class="relative">
+        <button
+          type="button"
+          aria-label="Help"
+          aria-haspopup="true"
+          [attr.aria-expanded]="isHelpOpen()"
+          (click)="toggleHelp()"
+          class="text-on-surface-variant hover:text-primary transition-colors duration-200 focus:outline-none"
+        >
+          <span class="material-symbols-outlined">help</span>
+        </button>
+
+        @if (isHelpOpen()) {
+          <div class="fixed inset-0 z-40" (click)="closeHelp()"></div>
+          <div
+            class="absolute right-0 top-full mt-2 w-72 z-50 rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-md shadow-action text-left"
+            (keydown.escape)="closeHelp()"
+          >
+            <h3 class="text-headline-md text-on-surface mb-2">How PixLite works</h3>
+            <ol class="list-decimal list-inside text-body-md text-on-surface-variant flex flex-col gap-1">
+              <li>Drop or select up to 20 images.</li>
+              <li>Adjust quality, format and options in the sidebar.</li>
+              <li>Click "Optimize Now" to compress them.</li>
+              <li>Download each result once it shows "Done".</li>
+            </ol>
+            <button type="button" (click)="closeHelp()" class="mt-stack-sm text-label-sm font-bold text-primary">Got it</button>
+          </div>
+        }
+      </div>
     </div>
   </div>
 </header>
