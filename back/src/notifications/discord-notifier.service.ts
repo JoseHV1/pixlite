@@ -15,6 +15,12 @@ interface DiscordVisitReport {
   referer?: string;
 }
 
+const SITE_DISPLAY_NAMES: Record<string, string> = {
+  pixlite: 'PixLite',
+  markconverted: 'MarkConvert',
+  portfolio: 'Portfolio',
+};
+
 @Injectable()
 export class DiscordNotifierService {
   private readonly logger = new Logger(DiscordNotifierService.name);
@@ -68,7 +74,7 @@ export class DiscordNotifierService {
     ];
 
     await this.post({
-      username: 'Pixlite',
+      username: SITE_DISPLAY_NAMES[report.site] ?? report.site,
       embeds: [{ title: `👀 Visita — ${report.site}`, color: 0x2ecc71, fields }],
     });
   }
