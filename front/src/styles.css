@@ -99,3 +99,38 @@
   --color-error: #ffb4ab;
   --color-on-error: #690005;
 }
+
+/* Micro-interactions — queue items fade/slide in as they're added, and
+   pop briefly the moment they land on "done". Kept as plain @keyframes
+   (not Tailwind's animate-* utilities) since these are one-shot, not
+   looping, and only used in two spots. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.97);
+  }
+  50% {
+    transform: scale(1.015);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.35s ease-out;
+}
+
+.animate-pop {
+  animation: pop 0.3s ease-out;
+}

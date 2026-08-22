@@ -1,5 +1,6 @@
-import { BadRequestException, Body, Controller, HttpException, HttpStatus, Post, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
+import { RateLimiter } from '../common/rate-limiter';
 import { DiscordNotifierService } from './discord-notifier.service';
 
 interface ClientErrorBody {
@@ -8,22 +9,19 @@ interface ClientErrorBody {
   url?: string;
 }
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 10;
-
 /**
  * Lets the Angular frontend report uncaught errors without ever holding the
  * Discord webhook URL itself — the browser posts here, this relays server-side.
  */
 @Controller('client-error')
 export class ClientErrorController {
-  private readonly requestTimestampsByIp = new Map<string, number[]>();
+  private readonly rateLimiter = new RateLimiter(60_000, 10);
 
   constructor(private readonly notifier: DiscordNotifierService) {}
 
   @Post()
   async report(@Body() body: ClientErrorBody, @Req() req: Request): Promise<{ reported: boolean }> {
-    this.enforceRateLimit(req.ip ?? 'unknown');
+    this.rateLimiter.enforce(req.ip ?? 'unknown');
 
     if (!body?.message || typeof body.message !== 'string') {
       throw new BadRequestException('message is required');
@@ -37,19 +35,5 @@ export class ClientErrorController {
     });
 
     return { reported: true };
-  }
-
-  private enforceRateLimit(ip: string): void {
-    const now = Date.now();
-    const timestamps = (this.requestTimestampsByIp.get(ip) ?? []).filter(
-      (t) => now - t < RATE_LIMIT_WINDOW_MS,
-    );
-
-    if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
-      throw new HttpException('Too many requests', HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    timestamps.push(now);
-    this.requestTimestampsByIp.set(ip, timestamps);
   }
 }

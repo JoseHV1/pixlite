@@ -13,13 +13,18 @@
       <app-dropzone
         class="lg:col-span-2 min-h-96 block rounded-xl shadow-action border border-surface-variant bg-surface-container-lowest"
         heading="Drag & Drop Images Here"
-        hint="or click to browse from your device"
+        hint="or click to browse, or paste an image (Ctrl+V)"
         (filesSelected)="onFilesSelected($event)"
       />
 
       <div class="rounded-xl shadow-action border border-surface-variant bg-surface-container-lowest p-stack-md flex flex-col justify-between">
         <div>
           <h3 class="text-headline-md text-on-surface mb-stack-md border-b border-surface-variant pb-2">Compression Settings</h3>
+
+          <div class="mb-stack-lg">
+            <label class="text-body-md text-on-surface-variant block mb-2">Quick Presets</label>
+            <app-preset-picker [presets]="presets" (select)="applyPreset($event)" />
+          </div>
 
           <div class="mb-stack-lg">
             <app-quality-slider [value]="quality()" [min]="10" [step]="10" (valueChange)="quality.set($event)" />
@@ -58,6 +63,13 @@
           <span class="material-symbols-outlined text-primary">imagesmode</span>
           Processing Queue
         </h4>
+
+        @if (queue.summary().doneCount > 0) {
+          <div class="mb-stack-md">
+            <app-batch-summary [summary]="queue.summary()" [error]="queue.zipError()" (downloadAll)="queue.downloadAllAsZip()" />
+          </div>
+        }
+
         <div class="flex flex-col gap-stack-sm">
           @for (entry of queue.entries(); track entry.id) {
             <app-queue-item-card
@@ -66,8 +78,11 @@
               [percent]="entry.percent"
               [detail]="entry | entryDetail"
               [thumbnailUrl]="entry.dataUrl"
+              [originalPreviewUrl]="entry.originalPreviewUrl"
+              [canRetry]="!!entry.file"
               (cancel)="queue.removeEntry(entry.id)"
               (download)="queue.downloadEntry(entry.id)"
+              (retry)="queue.retryEntry(entry.id)"
             />
           }
         </div>

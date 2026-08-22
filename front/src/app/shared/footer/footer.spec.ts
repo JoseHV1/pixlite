@@ -22,7 +22,7 @@ describe('Footer', () => {
     expect(el.querySelector('a[aria-label="GitHub"]')).toBeTruthy();
     expect(el.querySelector('a[aria-label="LinkedIn"]')).toBeTruthy();
     expect(el.querySelector('a[aria-label="Portfolio"]')?.getAttribute('href')).toBe(
-      'https://jose-hernandez.dev',
+      'https://josehv1.github.io/',
     );
   });
 });

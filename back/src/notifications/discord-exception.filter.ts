@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import type { Request, Response } from 'express';
 import { DiscordNotifierService } from './discord-notifier.service';
 
 /**
@@ -16,8 +17,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest();
-    const response = ctx.getResponse();
+    const request = ctx.getRequest<Request>();
+    const response = ctx.getResponse<Response>();
 
     const isHttpException = exception instanceof HttpException;
     const statusCode = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
@@ -26,8 +27,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (statusCode >= 500) {
       void this.notifier.notifyError({
         message: error?.message || 'Internal server error',
-        url: httpAdapter.getRequestUrl(request),
-        method: httpAdapter.getRequestMethod(request),
+        url: httpAdapter.getRequestUrl(request) as string,
+        method: httpAdapter.getRequestMethod(request) as string,
         statusCode,
         stack: error?.stack,
       });

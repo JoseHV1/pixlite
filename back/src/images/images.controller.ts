@@ -1,6 +1,8 @@
-import { BadRequestException, Body, Controller, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post, Req, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import type { Request } from 'express';
 import { memoryStorage } from 'multer';
+import { RateLimiter } from '../common/rate-limiter';
 import { ImagesService, MAX_FILE_SIZE, OUTPUT_FORMATS } from './images.service';
 import type { OutputFormat } from './images.service';
 
@@ -8,6 +10,8 @@ const MAX_FILES = 20;
 
 @Controller('images')
 export class ImagesController {
+  private readonly rateLimiter = new RateLimiter(60_000, 10);
+
   constructor(private readonly imagesService: ImagesService) {}
 
   @Post('compress')
@@ -16,11 +20,14 @@ export class ImagesController {
   )
   async compress(
     @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: Request,
     @Body('quality') quality?: string,
     @Body('format') format?: string,
     @Body('stripMetadata') stripMetadata?: string,
     @Body('resizeLargeImages') resizeLargeImages?: string,
   ) {
+    this.rateLimiter.enforce(req.ip ?? 'unknown');
+
     if (!files?.length) {
       throw new BadRequestException('No files were uploaded.');
     }

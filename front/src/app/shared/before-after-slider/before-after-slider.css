@@ -1,0 +1,32 @@
+.before-after-range {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  margin: 0;
+}
+
+.before-after-range::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.before-after-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 36px;
+  height: 100%;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+.before-after-range::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+.before-after-range::-moz-range-thumb {
+  width: 36px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  cursor: ew-resize;
+}

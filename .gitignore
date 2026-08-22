@@ -1,6 +1,11 @@
 # Claude Code local settings
 .claude/
 
+# Local docker-compose overrides (DISCORD_WEBHOOK_URL, CORS_ORIGIN, ...)
+.env
+.env.*
+!.env.example
+
 # Mockups de referencia, no forman parte del build
 styles/
 

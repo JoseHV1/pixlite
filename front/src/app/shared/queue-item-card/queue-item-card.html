@@ -1,9 +1,17 @@
 <div
-  class="w-full flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sm"
+  class="w-full flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sm animate-fade-in-up"
   [class]="containerClass()"
 >
   <div class="flex items-center gap-4 flex-grow min-w-0">
-    <div class="w-16 h-16 rounded-md overflow-hidden shrink-0 bg-surface-container-high flex items-center justify-center">
+    <button
+      type="button"
+      [disabled]="!canCompare()"
+      [attr.aria-label]="canCompare() ? 'Compare original vs compressed' : null"
+      (click)="openCompare()"
+      class="w-16 h-16 rounded-md overflow-hidden shrink-0 bg-surface-container-high flex items-center justify-center focus:outline-none"
+      [class.cursor-pointer]="canCompare()"
+      [class.cursor-default]="!canCompare()"
+    >
       @if (thumbnailUrl()) {
         <img [src]="thumbnailUrl()" alt="" class="w-full h-full object-cover" />
       } @else if (status() === 'done') {
@@ -13,7 +21,7 @@
       } @else {
         <span class="material-symbols-outlined text-on-surface-variant">image</span>
       }
-    </div>
+    </button>
 
     <div class="flex flex-col flex-grow min-w-0">
       <div class="flex justify-between items-baseline gap-2 mb-1">
@@ -56,6 +64,25 @@
     >
       <span class="material-symbols-outlined">download</span>
     </button>
+  } @else if (status() === 'error') {
+    <div class="ml-4 flex items-center gap-1 shrink-0">
+      @if (canRetry()) {
+        <button
+          aria-label="Retry"
+          class="p-2 text-primary hover:text-primary-container transition-colors focus:outline-none"
+          (click)="retry.emit()"
+        >
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+      }
+      <button
+        aria-label="Remove"
+        class="p-2 text-on-surface-variant hover:text-error transition-colors focus:outline-none"
+        (click)="cancel.emit()"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
   } @else {
     <button
       aria-label="Cancel"
@@ -66,3 +93,21 @@
     </button>
   }
 </div>
+
+@if (showCompare()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-gutter"
+    (click)="closeCompare()"
+  >
+    <div class="max-w-2xl w-full flex flex-col gap-stack-sm" (click)="$event.stopPropagation()">
+      <app-before-after-slider [beforeUrl]="originalPreviewUrl()!" [afterUrl]="thumbnailUrl()!" />
+      <button
+        type="button"
+        (click)="closeCompare()"
+        class="self-center text-label-sm font-bold text-on-primary bg-primary/80 hover:bg-primary px-4 py-2 rounded-lg transition-colors"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+}

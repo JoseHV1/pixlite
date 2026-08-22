@@ -45,6 +45,40 @@ describe('Dropzone', () => {
     expect(emitted[0][0].name).toBe('photo.png');
   });
 
+  it('emits filesSelected with an image pasted from the clipboard', async () => {
+    const fixture = TestBed.createComponent(Dropzone);
+    await fixture.whenStable();
+
+    const emitted: File[][] = [];
+    fixture.componentInstance.filesSelected.subscribe((files) => emitted.push(files));
+
+    const file = new File(['x'], 'clipboard.png', { type: 'image/png' });
+    const item = { kind: 'file', type: 'image/png', getAsFile: () => file } as unknown as DataTransferItem;
+    const event = {
+      clipboardData: { items: [item] },
+      preventDefault: () => {},
+    } as unknown as ClipboardEvent;
+
+    fixture.componentInstance.onPaste(event);
+
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0][0].name).toBe('clipboard.png');
+  });
+
+  it('ignores a paste with no image content', async () => {
+    const fixture = TestBed.createComponent(Dropzone);
+    await fixture.whenStable();
+
+    const emitted: File[][] = [];
+    fixture.componentInstance.filesSelected.subscribe((files) => emitted.push(files));
+
+    const item = { kind: 'string', type: 'text/plain', getAsFile: () => null } as unknown as DataTransferItem;
+    const event = { clipboardData: { items: [item] }, preventDefault: () => {} } as unknown as ClipboardEvent;
+
+    fixture.componentInstance.onPaste(event);
+    expect(emitted).toHaveLength(0);
+  });
+
   it('toggles the drag-over state on dragover/dragleave/drop', async () => {
     const fixture = TestBed.createComponent(Dropzone);
     await fixture.whenStable();

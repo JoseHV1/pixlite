@@ -1,0 +1,11 @@
+<div class="grid grid-cols-2 gap-2">
+  @for (preset of presets(); track preset.id) {
+    <button
+      type="button"
+      (click)="select.emit(preset.value)"
+      class="text-label-sm font-bold text-primary border border-primary/30 hover:bg-primary/10 transition-colors px-3 py-2 rounded-lg"
+    >
+      {{ preset.label }}
+    </button>
+  }
+</div>

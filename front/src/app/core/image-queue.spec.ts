@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import JSZip from 'jszip';
 import { ImageQueue, MAX_FILES_PER_BATCH } from './image-queue';
 import { API_BASE_URL } from './api-config';
 
@@ -117,6 +118,65 @@ describe('ImageQueue', () => {
     expect(sibling?.errorMessage).toContain('shared an upload');
   });
 
+  it('retryEntry recovers a sibling collaterally errored by cancelling another file in the same batch', () => {
+    queue.addFiles([file('a.jpg'), file('b.jpg')], { quality: 80, format: 'original' });
+    const [a, b] = queue.entries();
+
+    const firstReq = httpMock.expectOne(endpoint);
+    queue.removeEntry(a.id);
+    expect(firstReq.cancelled).toBe(true);
+    expect(queue.entries().find((e) => e.id === b.id)?.status).toBe('error');
+
+    queue.retryEntry(b.id);
+    expect(queue.entries().find((e) => e.id === b.id)?.status).toBe('compressing');
+
+    const retryReq = httpMock.expectOne(endpoint);
+    expect(retryReq.request.body.getAll('files')).toHaveLength(1);
+    retryReq.flush({
+      results: [{ filename: 'b.jpg', mimeType: 'image/jpeg', originalSize: 10, compressedSize: 6, dataUrl: 'data:x', error: null }],
+    });
+
+    const recovered = queue.entries().find((e) => e.id === b.id);
+    expect(recovered?.status).toBe('done');
+    expect(recovered?.compressedSize).toBe(6);
+  });
+
+  it('retryEntry does nothing for an entry that is not in an error state', () => {
+    queue.addFiles([file('a.jpg')], { quality: 80, format: 'original' });
+    const [entry] = queue.entries();
+    expect(entry.status).toBe('compressing');
+
+    queue.retryEntry(entry.id);
+    expect(queue.entries()[0].status).toBe('compressing');
+
+    // Still just the one original request outstanding — retryEntry fired nothing new.
+    httpMock.expectOne(endpoint).flush({
+      results: [{ filename: 'a.jpg', mimeType: 'image/jpeg', originalSize: 10, compressedSize: 5, dataUrl: 'data:x', error: null }],
+    });
+  });
+
+  it('retryEntry does nothing for the "files skipped" notice entry (no underlying file)', () => {
+    const files = Array.from({ length: MAX_FILES_PER_BATCH + 1 }, (_, i) => file(`img-${i}.jpg`));
+    queue.addFiles(files, { quality: 80, format: 'original' });
+    const notice = queue.entries()[queue.entries().length - 1];
+    expect(notice.status).toBe('error');
+
+    queue.retryEntry(notice.id);
+    expect(queue.entries().find((e) => e.id === notice.id)?.status).toBe('error');
+
+    // The original batch request is still the only one outstanding.
+    httpMock.expectOne(endpoint).flush({
+      results: files.slice(0, MAX_FILES_PER_BATCH).map(() => ({
+        filename: 'x',
+        mimeType: 'image/jpeg',
+        originalSize: 1,
+        compressedSize: 1,
+        dataUrl: 'data:x',
+        error: null,
+      })),
+    });
+  });
+
   it('downloadEntry triggers a download only once the file is done', () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
@@ -141,5 +201,65 @@ describe('ImageQueue', () => {
     expect(clickSpy).toHaveBeenCalledTimes(1);
 
     clickSpy.mockRestore();
+  });
+
+  it('downloadAllAsZip does nothing when no entry is done yet', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    queue.addFiles([file('a.jpg')], { quality: 80, format: 'original' });
+    await queue.downloadAllAsZip();
+    expect(clickSpy).not.toHaveBeenCalled();
+
+    httpMock.expectOne(endpoint).flush({
+      results: [{ filename: 'a.jpg', mimeType: 'image/jpeg', originalSize: 10, compressedSize: 5, dataUrl: 'data:x;base64,QQ==', error: null }],
+    });
+    clickSpy.mockRestore();
+  });
+
+  it('downloadAllAsZip sets zipError instead of throwing when zip generation fails', async () => {
+    const generateSpy = vi.spyOn(JSZip.prototype, 'generateAsync').mockRejectedValue(new Error('boom'));
+
+    queue.addFiles([file('a.jpg')], { quality: 80, format: 'original' });
+    httpMock.expectOne(endpoint).flush({
+      results: [{ filename: 'a.jpg', mimeType: 'image/jpeg', originalSize: 10, compressedSize: 5, dataUrl: 'data:image/jpeg;base64,QUJD', error: null }],
+    });
+
+    expect(queue.zipError()).toBeNull();
+    await expect(queue.downloadAllAsZip()).resolves.toBeUndefined();
+    expect(queue.zipError()).toContain('Could not create the .zip file');
+
+    generateSpy.mockRestore();
+  });
+
+  it('downloadAllAsZip bundles every done entry into one zip and de-duplicates repeated filenames', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    let capturedBlob: Blob | undefined;
+    const createObjectURLSpy = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockImplementation((obj: Blob | MediaSource) => {
+        capturedBlob = obj as Blob;
+        return 'blob:fake';
+      });
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    queue.addFiles([file('a.jpg'), file('a.jpg')], { quality: 80, format: 'original' });
+    httpMock.expectOne(endpoint).flush({
+      results: [
+        { filename: 'a.jpg', mimeType: 'image/jpeg', originalSize: 10, compressedSize: 5, dataUrl: 'data:image/jpeg;base64,QUJD', error: null },
+        { filename: 'a.jpg', mimeType: 'image/jpeg', originalSize: 10, compressedSize: 5, dataUrl: 'data:image/jpeg;base64,REVG', error: null },
+      ],
+    });
+
+    await queue.downloadAllAsZip();
+
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(capturedBlob).toBeDefined();
+
+    const zip = await JSZip.loadAsync(capturedBlob!);
+    expect(Object.keys(zip.files).sort()).toEqual(['a (2).jpg', 'a.jpg']);
+
+    clickSpy.mockRestore();
+    createObjectURLSpy.mockRestore();
+    revokeSpy.mockRestore();
   });
 });

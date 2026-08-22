@@ -11,6 +11,9 @@ function entry(overrides: Partial<QueueEntry>): QueueEntry {
     compressedSize: null,
     dataUrl: null,
     errorMessage: null,
+    originalPreviewUrl: null,
+    file: null,
+    options: null,
     ...overrides,
   };
 }

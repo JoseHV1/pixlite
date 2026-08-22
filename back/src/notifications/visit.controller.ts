@@ -1,5 +1,6 @@
-import { BadRequestException, Body, Controller, HttpException, HttpStatus, Post, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
+import { RateLimiter } from '../common/rate-limiter';
 import { DiscordNotifierService } from './discord-notifier.service';
 
 interface VisitBody {
@@ -9,8 +10,6 @@ interface VisitBody {
 }
 
 const ALLOWED_SITES = ['pixlite', 'markconverted', 'portfolio'];
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 20;
 
 /**
  * Shared visit-ping relay for the whole personal-projects group — lets any
@@ -21,13 +20,13 @@ const RATE_LIMIT_MAX_REQUESTS = 20;
  */
 @Controller('visit')
 export class VisitController {
-  private readonly requestTimestampsByIp = new Map<string, number[]>();
+  private readonly rateLimiter = new RateLimiter(60_000, 20);
 
   constructor(private readonly notifier: DiscordNotifierService) {}
 
   @Post()
   async report(@Body() body: VisitBody, @Req() req: Request): Promise<{ reported: boolean }> {
-    this.enforceRateLimit(req.ip ?? 'unknown');
+    this.rateLimiter.enforce(req.ip ?? 'unknown');
 
     if (!body?.site || !ALLOWED_SITES.includes(body.site)) {
       throw new BadRequestException(`site must be one of: ${ALLOWED_SITES.join(', ')}`);
@@ -40,19 +39,5 @@ export class VisitController {
     });
 
     return { reported: true };
-  }
-
-  private enforceRateLimit(ip: string): void {
-    const now = Date.now();
-    const timestamps = (this.requestTimestampsByIp.get(ip) ?? []).filter(
-      (t) => now - t < RATE_LIMIT_WINDOW_MS,
-    );
-
-    if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
-      throw new HttpException('Too many requests', HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    timestamps.push(now);
-    this.requestTimestampsByIp.set(ip, timestamps);
   }
 }

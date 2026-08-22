@@ -1,0 +1,37 @@
+<div class="relative w-full aspect-video overflow-hidden rounded-xl bg-surface-container-high select-none">
+  <img [src]="beforeUrl()" alt="" class="absolute inset-0 w-full h-full object-contain pointer-events-none" />
+  <img
+    [src]="afterUrl()"
+    alt=""
+    class="absolute inset-0 w-full h-full object-contain pointer-events-none"
+    [style.clip-path]="'inset(0 ' + (100 - percent()) + '% 0 0)'"
+  />
+
+  <div class="absolute inset-y-0 pointer-events-none" [style.left.%]="percent()">
+    <div class="absolute inset-y-0 -translate-x-1/2 w-0.5 bg-white shadow-action"></div>
+    <div
+      class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-action flex items-center justify-center"
+    >
+      <span class="material-symbols-outlined text-primary text-lg">code</span>
+    </div>
+  </div>
+
+  <input
+    type="range"
+    min="0"
+    max="100"
+    [value]="percent()"
+    (input)="onInput($event)"
+    class="before-after-range absolute inset-0 w-full h-full cursor-ew-resize"
+    [attr.aria-label]="beforeLabel() + ' vs ' + afterLabel()"
+  />
+
+  <span
+    class="absolute bottom-2 left-2 text-label-sm font-bold bg-surface-container-lowest/90 text-on-surface px-2 py-1 rounded-md"
+    >{{ beforeLabel() }}</span
+  >
+  <span
+    class="absolute bottom-2 right-2 text-label-sm font-bold bg-surface-container-lowest/90 text-on-surface px-2 py-1 rounded-md"
+    >{{ afterLabel() }}</span
+  >
+</div>

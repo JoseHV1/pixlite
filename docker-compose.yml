@@ -6,16 +6,13 @@ services:
       - PORT=3000
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
-    env_file:
-      - path: ./back/.env
-        required: false
     ports:
-      - "3002:3000"
+      - "127.0.0.1:3002:3000"
     restart: unless-stopped
 
   front:
     build:
       context: ./front
     ports:
-      - "3003:80"
+      - "127.0.0.1:3003:80"
     restart: unless-stopped
