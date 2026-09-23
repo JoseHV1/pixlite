@@ -29,4 +29,20 @@ describe('PrimaryButton', () => {
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('button').classList).toContain('w-full');
   });
+
+  it('swaps the icon for a spinner and disables itself while loading', async () => {
+    const fixture = TestBed.createComponent(PrimaryButton);
+    fixture.componentRef.setInput('label', 'Optimize Now');
+    fixture.componentRef.setInput('icon', 'auto_awesome');
+    fixture.componentRef.setInput('loading', true);
+    fixture.componentRef.setInput('loadingLabel', 'Optimizing...');
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const button = el.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    expect(el.querySelector('app-spinner')).toBeTruthy();
+    expect(el.textContent).toContain('Optimizing...');
+    expect(el.textContent).not.toContain('auto_awesome');
+  });
 });

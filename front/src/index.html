@@ -28,9 +28,35 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Montserrat:wght@400;600;700&amp;family=Outfit:wght@300;400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- Mirrors ThemeService.readInitial() so the boot loader (and the first
+       paint of the app) never flash the wrong theme. -->
+  <script>
+    try {
+      var t = localStorage.getItem('pixlite-theme');
+      if (t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    } catch (e) {}
+  </script>
+  <!-- Inline on purpose: the boot loader must render before any bundle or
+       stylesheet arrives. Angular replaces <app-root>'s contents on bootstrap. -->
+  <style>
+    .boot-loader { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; background: #fdf7ff; color: #4f378a; font-family: Outfit, system-ui, sans-serif; }
+    [data-theme='dark'] .boot-loader { background: #1c1b1f; color: #d0bcff; }
+    .boot-loader__ring { width: 48px; height: 48px; border-radius: 50%; border: 4px solid currentColor; border-top-color: transparent; animation: boot-spin 0.8s linear infinite; }
+    .boot-loader__name { font-size: 24px; font-weight: 700; letter-spacing: 0.02em; }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .boot-loader__ring { animation-duration: 2.4s; } }
+  </style>
 </head>
 <body>
-  <app-root></app-root>
+  <app-root>
+    <div class="boot-loader" role="status" aria-label="Loading PixLite">
+      <div class="boot-loader__ring"></div>
+      <div class="boot-loader__name">PixLite</div>
+    </div>
+  </app-root>
   <noscript>Please enable JavaScript to continue using this application.</noscript>
 </body>
 </html>

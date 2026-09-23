@@ -1,14 +1,17 @@
 import { Component, computed, input, output } from '@angular/core';
 import { QueueSummary } from '../../core/image-queue';
 import { formatBytes } from '../entry-detail.pipe';
+import { Spinner } from '../spinner/spinner';
 
 @Component({
   selector: 'app-batch-summary',
+  imports: [Spinner],
   templateUrl: './batch-summary.html',
 })
 export class BatchSummary {
   readonly summary = input.required<QueueSummary>();
   readonly error = input<string | null>(null);
+  readonly zipping = input(false);
 
   readonly downloadAll = output<void>();
 

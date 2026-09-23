@@ -10,6 +10,7 @@ import { Checkbox } from '../../shared/checkbox/checkbox';
 import { BatchSummary } from '../../shared/batch-summary/batch-summary';
 import { PresetPicker, Preset } from '../../shared/preset-picker/preset-picker';
 import { EntryDetailPipe } from '../../shared/entry-detail.pipe';
+import { Spinner } from '../../shared/spinner/spinner';
 import { ImageQueue } from '../../core/image-queue';
 import { OutputFormat } from '../../core/images-api';
 
@@ -33,6 +34,7 @@ interface CompressionPreset {
     BatchSummary,
     PresetPicker,
     EntryDetailPipe,
+    Spinner,
   ],
   providers: [ImageQueue],
   templateUrl: './soft-page.html',

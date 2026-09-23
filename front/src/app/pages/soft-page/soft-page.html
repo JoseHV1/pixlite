@@ -55,7 +55,15 @@
           }
         </div>
 
-        <app-primary-button class="mt-stack-md" label="Optimize Now" icon="auto_awesome" [fullWidth]="true" (click)="optimizeNow()" />
+        <app-primary-button
+          class="mt-stack-md"
+          label="Optimize Now"
+          icon="auto_awesome"
+          loadingLabel="Optimizing..."
+          [fullWidth]="true"
+          [loading]="queue.activeCount() > 0"
+          (click)="optimizeNow()"
+        />
       </div>
     </div>
 
@@ -68,7 +76,7 @@
 
         @if (queue.summary().doneCount > 0) {
           <div class="mb-stack-md">
-            <app-batch-summary [summary]="queue.summary()" [error]="queue.zipError()" (downloadAll)="queue.downloadAllAsZip()" />
+            <app-batch-summary [summary]="queue.summary()" [error]="queue.zipError()" [zipping]="queue.isZipping()" (downloadAll)="queue.downloadAllAsZip()" />
           </div>
         }
 
@@ -91,6 +99,23 @@
       </div>
     }
   </main>
+
+  <!-- Non-blocking: the queue stays usable (cancel, retry) while this shows. -->
+  @if (queue.isBusy()) {
+    <div
+      class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-full shadow-action border border-primary/30 bg-surface-container-high text-primary animate-fade-in-up"
+      aria-live="polite"
+    >
+      <app-spinner [size]="18" label="Working" />
+      <span class="text-label-sm text-on-surface whitespace-nowrap">
+        @if (queue.activeCount() > 0) {
+          Optimizing {{ queue.activeCount() }} {{ queue.activeCount() === 1 ? 'image' : 'images' }}...
+        } @else {
+          Creating .zip...
+        }
+      </span>
+    </div>
+  }
 
   <app-footer />
 </div>

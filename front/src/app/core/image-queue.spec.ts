@@ -262,4 +262,45 @@ describe('ImageQueue', () => {
     createObjectURLSpy.mockRestore();
     revokeSpy.mockRestore();
   });
+
+  it('reports busy while a batch is in flight and idle once it settles', () => {
+    expect(queue.isBusy()).toBe(false);
+
+    queue.addFiles([file('a.jpg'), file('b.jpg')], { quality: 80, format: 'original' });
+    expect(queue.activeCount()).toBe(2);
+    expect(queue.isBusy()).toBe(true);
+
+    httpMock.expectOne(endpoint).flush({
+      results: [
+        { filename: 'a.jpg', mimeType: 'image/jpeg', originalSize: 10, compressedSize: 5, dataUrl: 'data:image/jpeg;base64,QUJD', error: null },
+        { filename: 'b.jpg', mimeType: 'image/jpeg', originalSize: 10, compressedSize: 0, dataUrl: null, error: 'bad' },
+      ],
+    });
+
+    expect(queue.activeCount()).toBe(0);
+    expect(queue.isBusy()).toBe(false);
+  });
+
+  it('flags isZipping for the duration of downloadAllAsZip, even when it fails', async () => {
+    let rejectZip!: (err: Error) => void;
+    const generateSpy = vi
+      .spyOn(JSZip.prototype, 'generateAsync')
+      .mockReturnValue(new Promise((_, reject) => (rejectZip = reject)) as never);
+
+    queue.addFiles([file('a.jpg')], { quality: 80, format: 'original' });
+    httpMock.expectOne(endpoint).flush({
+      results: [{ filename: 'a.jpg', mimeType: 'image/jpeg', originalSize: 10, compressedSize: 5, dataUrl: 'data:image/jpeg;base64,QUJD', error: null }],
+    });
+
+    const pending = queue.downloadAllAsZip();
+    expect(queue.isZipping()).toBe(true);
+    expect(queue.isBusy()).toBe(true);
+
+    rejectZip(new Error('boom'));
+    await pending;
+    expect(queue.isZipping()).toBe(false);
+    expect(queue.isBusy()).toBe(false);
+
+    generateSpy.mockRestore();
+  });
 });

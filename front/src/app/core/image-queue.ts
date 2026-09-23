@@ -38,9 +38,17 @@ export class ImageQueue implements OnDestroy {
   private readonly subscriptions = new Map<string, Subscription>();
 
   private readonly _zipError = signal<string | null>(null);
+  private readonly _isZipping = signal(false);
 
   readonly entries = this._entries.asReadonly();
   readonly zipError = this._zipError.asReadonly();
+  readonly isZipping = this._isZipping.asReadonly();
+
+  /** Entries still uploading or being compressed server-side. */
+  readonly activeCount = computed(
+    () => this._entries().filter((entry) => entry.status === 'compressing' || entry.status === 'processing').length,
+  );
+  readonly isBusy = computed(() => this.activeCount() > 0 || this._isZipping());
 
   readonly summary = computed<QueueSummary>(() => {
     const done = this._entries().filter((entry) => entry.status === 'done' && entry.compressedSize !== null);
@@ -156,9 +164,10 @@ export class ImageQueue implements OnDestroy {
 
   async downloadAllAsZip(): Promise<void> {
     const done = this._entries().filter((entry) => entry.status === 'done' && entry.dataUrl);
-    if (done.length === 0) return;
+    if (done.length === 0 || this._isZipping()) return;
 
     this._zipError.set(null);
+    this._isZipping.set(true);
     try {
       const zip = new JSZip();
       const usedNames = new Set<string>();
@@ -182,6 +191,8 @@ export class ImageQueue implements OnDestroy {
       // batch) would otherwise only surface as an invisible unhandled
       // rejection — give the user something to see instead.
       this._zipError.set('Could not create the .zip file — try downloading files individually.');
+    } finally {
+      this._isZipping.set(false);
     }
   }
 

@@ -70,4 +70,17 @@ describe('BatchSummary', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Could not create the .zip file');
   });
+
+  it('disables the zip button and shows a spinner while zipping', async () => {
+    const fixture = TestBed.createComponent(BatchSummary);
+    fixture.componentRef.setInput('summary', { doneCount: 1, totalOriginal: 10, totalCompressed: 5, percentSaved: 50 });
+    fixture.componentRef.setInput('zipping', true);
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const button = el.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(el.querySelector('app-spinner')).toBeTruthy();
+    expect(el.textContent).toContain('Creating .zip...');
+  });
 });
