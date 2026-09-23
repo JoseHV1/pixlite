@@ -14,7 +14,9 @@
         class="lg:col-span-2 min-h-96 block rounded-xl shadow-action border border-surface-variant bg-surface-container-lowest"
         heading="Drag & Drop Images Here"
         hint="or click to browse, or paste an image (Ctrl+V)"
+        [files]="pendingFiles()"
         (filesSelected)="onFilesSelected($event)"
+        (fileRemoved)="removePendingFile($event)"
       />
 
       <div class="rounded-xl shadow-action border border-surface-variant bg-surface-container-lowest p-stack-md flex flex-col justify-between">

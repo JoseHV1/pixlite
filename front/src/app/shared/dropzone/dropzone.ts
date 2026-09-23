@@ -1,4 +1,5 @@
-import { Component, HostListener, input, output, signal } from '@angular/core';
+import { Component, HostListener, computed, effect, input, output, signal } from '@angular/core';
+import { formatBytes } from '../entry-detail.pipe';
 
 @Component({
   selector: 'app-dropzone',
@@ -9,9 +10,33 @@ export class Dropzone {
   readonly hint = input('or click to browse files');
   readonly caption = input('Supports JPG, PNG, WebP up to 50MB');
 
+  // Files staged by the parent but not sent yet — shown inside the dropzone so
+  // the user gets immediate confirmation that the drop/pick/paste worked.
+  readonly files = input<File[]>([]);
+
   readonly filesSelected = output<File[]>();
+  readonly fileRemoved = output<number>();
+
+  readonly previews = computed(() =>
+    this.files().map((file) => ({ file, url: URL.createObjectURL(file), size: formatBytes(file.size) })),
+  );
 
   readonly isDragOver = signal(false);
+
+  constructor() {
+    effect((onCleanup) => {
+      const previews = this.previews();
+      onCleanup(() => previews.forEach((preview) => URL.revokeObjectURL(preview.url)));
+    });
+  }
+
+  removeFile(event: Event, index: number): void {
+    // The remove button sits above the full-size file input; without this the
+    // click would also open the file picker.
+    event.preventDefault();
+    event.stopPropagation();
+    this.fileRemoved.emit(index);
+  }
 
   onInputChange(event: Event): void {
     const input = event.target as HTMLInputElement;

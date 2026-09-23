@@ -101,4 +101,16 @@ describe('SoftPage', () => {
     expect(fixture.componentInstance.format()).toBe('jpeg');
     expect(fixture.componentInstance.resizeLargeImages()).toBe(true);
   });
+
+  it('removePendingFile drops only the file at that index', async () => {
+    const fixture = TestBed.createComponent(SoftPage);
+    const instance = fixture.componentInstance;
+    const [a, b, c] = ['a.png', 'b.png', 'c.png'].map((name) => new File(['x'], name, { type: 'image/png' }));
+    instance.onFilesSelected([a, b]);
+    instance.onFilesSelected([c]);
+
+    instance.removePendingFile(1);
+
+    expect(instance.pendingFiles()).toEqual([a, c]);
+  });
 });

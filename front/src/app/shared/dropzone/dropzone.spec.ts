@@ -94,4 +94,37 @@ describe('Dropzone', () => {
     instance.onDrop({ preventDefault: () => {}, dataTransfer: null } as unknown as DragEvent);
     expect(instance.isDragOver()).toBe(false);
   });
+
+  it('previews staged files and emits fileRemoved without opening the picker', async () => {
+    const createObjectURL = vi.fn((file: File) => `blob:${file.name}`);
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL }));
+
+    const fixture = TestBed.createComponent(Dropzone);
+    const files = [
+      new File(['x'], 'a.png', { type: 'image/png' }),
+      new File(['x'], 'b.png', { type: 'image/png' }),
+      new File(['x'], 'c.png', { type: 'image/png' }),
+    ];
+    fixture.componentRef.setInput('files', files);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.textContent).toContain('3 images ready');
+    expect(el.querySelectorAll('li img')).toHaveLength(3);
+    expect(el.textContent).toContain('b.png');
+
+    const removed: number[] = [];
+    fixture.componentInstance.fileRemoved.subscribe((index) => removed.push(index));
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    (el.querySelector('button[aria-label="Remove b.png"]') as HTMLButtonElement).dispatchEvent(click);
+    expect(removed).toEqual([1]);
+    expect(click.defaultPrevented).toBe(true);
+
+    fixture.componentRef.setInput('files', []);
+    await fixture.whenStable();
+    expect(revokeObjectURL).toHaveBeenCalledTimes(3);
+    expect(el.textContent).toContain('Drag & drop images here');
+    vi.unstubAllGlobals();
+  });
 });

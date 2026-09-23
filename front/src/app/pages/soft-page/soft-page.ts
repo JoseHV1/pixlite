@@ -64,6 +64,10 @@ export class SoftPage {
     this.pendingFiles.update((current) => [...current, ...files]);
   }
 
+  removePendingFile(index: number): void {
+    this.pendingFiles.update((current) => current.filter((_, i) => i !== index));
+  }
+
   applyPreset(preset: CompressionPreset): void {
     this.quality.set(preset.quality);
     this.format.set(preset.format);

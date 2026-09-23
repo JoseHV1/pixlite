@@ -1,22 +1,53 @@
 <div
-  class="group relative w-full h-full min-h-64 flex flex-col items-center justify-center text-center p-12 overflow-hidden cursor-pointer rounded-xl border-2 border-dashed bg-surface transition-all duration-300 ease-in-out hover:border-primary hover:bg-primary/5"
+  class="group relative w-full h-full min-h-64 flex flex-col items-center justify-center text-center p-6 sm:p-12 overflow-hidden cursor-pointer rounded-xl border-2 border-dashed bg-surface transition-all duration-300 ease-in-out hover:border-primary hover:bg-primary/5"
   [class]="isDragOver() ? 'border-primary bg-primary/5' : 'border-outline-variant'"
   (dragover)="onDragOver($event)"
   (dragleave)="onDragLeave($event)"
   (drop)="onDrop($event)"
 >
-  <div class="z-10 flex flex-col items-center gap-4">
-    <span
-      class="material-symbols-outlined text-6xl text-primary transition-transform duration-300 group-hover:scale-110"
-      style="font-variation-settings: 'FILL' 0"
-      >cloud_upload</span
-    >
-    <div>
-      <h2 class="text-headline-md text-on-surface mb-2">{{ heading() }}</h2>
-      <p class="text-body-md text-on-surface-variant">{{ hint() }}</p>
+  @if (previews().length) {
+    <div class="z-10 w-full flex flex-col items-center gap-4">
+      <div class="flex items-center gap-2 text-primary">
+        <span class="material-symbols-outlined">check_circle</span>
+        <h2 class="text-headline-md text-on-surface">
+          {{ previews().length }} {{ previews().length === 1 ? 'image' : 'images' }} ready
+        </h2>
+      </div>
+      <ul class="w-full grid grid-cols-2 sm:grid-cols-3 gap-3">
+        @for (preview of previews(); track preview.url; let i = $index) {
+          <li class="relative rounded-lg overflow-hidden border border-surface-variant bg-surface-container-lowest text-left">
+            <img [src]="preview.url" [alt]="preview.file.name" class="w-full h-24 object-cover" />
+            <div class="px-2 py-1">
+              <p class="text-label-sm text-on-surface truncate" [title]="preview.file.name">{{ preview.file.name }}</p>
+              <p class="text-label-sm text-outline">{{ preview.size }}</p>
+            </div>
+            <button
+              type="button"
+              class="absolute top-1 right-1 z-20 w-7 h-7 flex items-center justify-center rounded-full bg-background/80 text-on-surface hover:text-error cursor-pointer"
+              [attr.aria-label]="'Remove ' + preview.file.name"
+              (click)="removeFile($event, i)"
+            >
+              <span class="material-symbols-outlined text-base">close</span>
+            </button>
+          </li>
+        }
+      </ul>
+      <p class="text-body-md text-on-surface-variant">Click or drop to add more, then press Optimize Now</p>
     </div>
-    <p class="text-label-sm text-outline uppercase">{{ caption() }}</p>
-  </div>
+  } @else {
+    <div class="z-10 flex flex-col items-center gap-4">
+      <span
+        class="material-symbols-outlined text-6xl text-primary transition-transform duration-300 group-hover:scale-110"
+        style="font-variation-settings: 'FILL' 0"
+        >cloud_upload</span
+      >
+      <div>
+        <h2 class="text-headline-md text-on-surface mb-2">{{ heading() }}</h2>
+        <p class="text-body-md text-on-surface-variant">{{ hint() }}</p>
+      </div>
+      <p class="text-label-sm text-outline uppercase">{{ caption() }}</p>
+    </div>
+  }
   <input
     type="file"
     multiple
